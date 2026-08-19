@@ -81,7 +81,7 @@ def show():
     if mode_now: 
         print("Keys:")
         for i in range(6): 
-            print(f"[{i}] {data["Modes"][mode_now][str(i)]}")
+            print(f"[{i}] {data['Modes'][mode_now][str(i)]}")
     else:
         print("Modes:")
         for i in list(data["Modes"].keys()):
@@ -89,6 +89,54 @@ def show():
 
 
 def commands(command):
+    def sequence():
+        sequence = []
+
+        while True:
+            action = input("sequence> ").strip()
+
+            if action == "":
+                break
+
+            parts = action.split(" ", 1)
+
+            if len(parts) < 2:
+                continue
+
+            key_type = parts[0]
+            value = parts[1].strip()
+
+            if key_type == "text":
+                sequence.append({
+                    "type": "text",
+                    "main": value
+                })
+
+            elif key_type == "macro":
+                value = [x.strip() for x in value.split(",")]
+
+                sequence.append({
+                    "type": "macro",
+                    "main": value
+                })
+
+            elif key_type == "delay":
+                try:
+                    value = int(value)
+
+                    sequence.append({
+                        "type": "delay",
+                        "main": value
+                    })
+
+                except ValueError:
+                    print("Delay must be a number.")
+
+            else:
+                print(f"Unknown sequence command: {key_type}")
+
+        return sequence
+
     global mode_now
 
     if command == "list modes":
@@ -103,7 +151,9 @@ def commands(command):
 
         if len(mode) < 2:
             return
+
         mode = mode[1]
+
         if mode in data["Modes"]:
             mode_now = mode
             show()
@@ -116,34 +166,50 @@ def commands(command):
     elif command.startswith("k"):
         data = conf.load()
 
-        number = int(command[1])
+        parts = command[1:].split(" ", 2)
 
-        parts = command[2:].strip().split(" ", 1)
-
-        if len(parts) < 2:
+        if len(parts) < 3:
             return
 
-        key_type = parts[0]
-        value = parts[1].strip()
+        try:
+            number = int(parts[0])
+        except ValueError:
+            return
+
+        key_type = parts[1]
+        value = parts[2].strip()
 
         if key_type == "text":
             if value == "remove":
                 value = ""
 
-            data["Modes"][mode_now][str(number)] = value
-
         elif key_type == "macro":
             if value == "remove":
                 value = []
-
             else:
                 value = [x.strip() for x in value.split(",")]
 
-            data["Modes"][mode_now][str(number)] = value
+        elif key_type == "sequence":
+            if value == "remove":
+                value = []
+            elif value == "create":
+                value = sequence()
+            else:
+                print(f"Unknown sequence command: {value}")
+                return
+
+        else:
+            print(f"Unknown key type: {key_type}")
+            return
+
+        data["Modes"][mode_now][str(number)] = {
+            "type": key_type,
+            "main": value
+        }
 
         conf.save(data)
         show()
-
+        
     elif command.startswith("remove"):
         data = conf.load()
         mode = command.split()
@@ -169,12 +235,12 @@ def commands(command):
 
         if not mode in data["Modes"]:
             data["Modes"][mode] = {
-                "0": "",
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": ""
+                "0": {},
+                "1": {},
+                "2": {},
+                "3": {},
+                "4": {},
+                "5": {}
             }
         else:
             print(f"Mode {mode} already exists")
@@ -195,7 +261,7 @@ def commands(command):
             data["Modes"][second] = data["Modes"][first]
             del data["Modes"][first]
         else:
-            print(f"Mode {mode} doesn't exists")
+            print(f"Mode {first} doesn't exists")
 
         conf.save(data)
         show()

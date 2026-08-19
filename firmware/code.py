@@ -37,12 +37,15 @@ mode_button.pull = digitalio.Pull.UP
 def get():
     global data
     global modes
+    global current_mode
     with open("/conf.json") as f:
         data = json.load(f)
     modes = list(data["Modes"].keys())
+    if current_mode >= len(modes):
+        current_mode = 0
 
-get()
 current_mode = 0
+get()
 
 def display_mode():
     global current_mode
@@ -87,6 +90,25 @@ def send_key(key):
         "RIGHT": Keycode.RIGHT_ARROW,
     }
 
+    CHAR_KEYCODES = {
+        "0": Keycode.ZERO, "1": Keycode.ONE, "2": Keycode.TWO, "3": Keycode.THREE,
+        "4": Keycode.FOUR, "5": Keycode.FIVE, "6": Keycode.SIX, "7": Keycode.SEVEN,
+        "8": Keycode.EIGHT, "9": Keycode.NINE, " ": Keycode.SPACE,
+        "-": Keycode.MINUS, "=": Keycode.EQUALS, "[": Keycode.LEFT_BRACKET,
+        "]": Keycode.RIGHT_BRACKET, "\\": Keycode.BACKSLASH, ";": Keycode.SEMICOLON,
+        "'": Keycode.QUOTE, "`": Keycode.GRAVE_ACCENT, ",": Keycode.COMMA,
+        ".": Keycode.PERIOD, "/": Keycode.FORWARD_SLASH,
+    }
+
+    SHIFT_SYMBOLS = {
+        "!": Keycode.ONE, "@": Keycode.TWO, "#": Keycode.THREE, "$": Keycode.FOUR,
+        "%": Keycode.FIVE, "^": Keycode.SIX, "&": Keycode.SEVEN, "*": Keycode.EIGHT,
+        "(": Keycode.NINE, ")": Keycode.ZERO, "_": Keycode.MINUS, "+": Keycode.EQUALS,
+        "{": Keycode.LEFT_BRACKET, "}": Keycode.RIGHT_BRACKET, "|": Keycode.BACKSLASH,
+        ":": Keycode.SEMICOLON, "\"": Keycode.QUOTE, "~": Keycode.GRAVE_ACCENT,
+        "<": Keycode.COMMA, ">": Keycode.PERIOD, "?": Keycode.FORWARD_SLASH,
+    }
+
     def get_keycode(name):
         name = name.upper()
 
@@ -94,39 +116,65 @@ def send_key(key):
             return KEY_ALIASES[name]
 
         return getattr(Keycode, name, None)
-    
-    mode = modes[current_mode]
-    info = data["Modes"][mode][str(key)]
 
-    if isinstance(info, list):
-        keycodes = []
+    def execute(info):
+        key_type = info.get("type")
+        main = info.get("main")
 
-        for key_name in info:
-            keycode = get_keycode(key_name)
+        if key_type == "macro":
+            keycodes = []
 
-            if keycode is not None:
-                keycodes.append(keycode)
+            for key_name in main:
+                keycode = get_keycode(key_name)
 
-        if keycodes:
-            keyboard.press(*keycodes)
-            keyboard.release_all()
+                if keycode is not None:
+                    keycodes.append(keycode)
 
-    elif isinstance(info, str):
-        for char in info:
-            keycode = get_keycode(char)
+            if keycodes:
+                keyboard.press(*keycodes)
+                keyboard.release_all()
 
-            if keycode is not None:
-                if char.isupper():
+        elif key_type == "text":
+            for char in main:
+                if char in SHIFT_SYMBOLS:
+                    keycode = SHIFT_SYMBOLS[char]
                     keyboard.press(Keycode.SHIFT)
                     keyboard.press(keycode)
                     keyboard.release(keycode)
                     keyboard.release(Keycode.SHIFT)
-                else:
+                elif char.isupper():
+                    keycode = get_keycode(char)
+
+                    if keycode is not None:
+                        keyboard.press(Keycode.SHIFT)
+                        keyboard.press(keycode)
+                        keyboard.release(keycode)
+                        keyboard.release(Keycode.SHIFT)
+                elif char == "&":
+                    keyboard.press(Keycode.SHIFT, Keycode.SIX)
+                    keyboard.release_all()
+                elif char in CHAR_KEYCODES:
+                    keycode = CHAR_KEYCODES[char]
                     keyboard.press(keycode)
                     keyboard.release(keycode)
-            else:
-                keyboard.press(Keycode.SPACE)
-                keyboard.release(Keycode.SPACE)
+                else:
+                    keycode = get_keycode(char)
+
+                    if keycode is not None:
+                        keyboard.press(keycode)
+                        keyboard.release(keycode)
+
+        elif key_type == "delay":
+            time.sleep(main / 1000)
+
+        elif key_type == "sequence":
+            for action in main:
+                execute(action)
+
+    mode = modes[current_mode]
+    info = data["Modes"][mode][str(key)]
+
+    execute(info)
 
 def recive_serial():
     import usb_cdc  # type: ignore
