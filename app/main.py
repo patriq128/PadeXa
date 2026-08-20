@@ -169,7 +169,7 @@ def commands(command):
 
         parts = command[1:].split(" ", 2)
 
-        if len(parts) < 3:
+        if len(parts) < 2:
             return
 
         try:
@@ -178,13 +178,19 @@ def commands(command):
             return
 
         key_type = parts[1]
-        value = parts[2].strip()
+        value = parts[2].strip() if len(parts) >= 3 else ""
 
         if key_type == "text":
+            if len(parts) < 3:
+                return
+
             if value == "remove":
                 value = ""
 
         elif key_type == "macro":
+            if len(parts) < 3:
+                return
+
             if value == "remove":
                 value = []
             else:
