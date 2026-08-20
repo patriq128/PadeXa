@@ -1,6 +1,7 @@
 import serial
 import serial.tools.list_ports
 import json
+import sys
 
 def connect_device():
     global ser
@@ -15,11 +16,11 @@ def connect_device():
     port = find_pico()
 
     if not port:
-        print("Device not found")
+        print("\033[31mDevice not found\033[0m")
         exit()
 
     ser = serial.Serial(port, 115200)
-    print("Connected:", port)
+    print("\033[32mConnected:", port, "\033[0m")
 
 class Conf:
     def load_device(self):
@@ -69,7 +70,7 @@ def show():
     global mode_now 
     print("\033[2J\033[H", end="")
     if mode_now: 
-        print(f"Mode: {mode_now}") 
+        print(f"Mode: \033[32m{mode_now}\033[0m") 
     print("""
 ┌───────────┐
 │[────]  ○  │
@@ -85,7 +86,7 @@ def show():
     else:
         print("Modes:")
         for i in list(data["Modes"].keys()):
-            print(i)
+            print("\033[32m", i, "\033[0m")
 
 
 def commands(command):
@@ -130,10 +131,10 @@ def commands(command):
                     })
 
                 except ValueError:
-                    print("Delay must be a number.")
+                    print("\033[31mDelay must be a number.\033[0m")
 
             else:
-                print(f"Unknown sequence command: {key_type}")
+                print(f"\033[31mUnknown sequence command: {key_type}\033[0m")
 
         return sequence
 
@@ -158,7 +159,7 @@ def commands(command):
             mode_now = mode
             show()
         else:
-            print(f"Mode {mode} doesn't exists")
+            print(f"\033[31mMode {mode} doesn't exists\033[0m")
 
     elif command == "show":
         show()
@@ -192,14 +193,11 @@ def commands(command):
         elif key_type == "sequence":
             if value == "remove":
                 value = []
-            elif value == "create":
-                value = sequence()
             else:
-                print(f"Unknown sequence command: {value}")
-                return
+                value = sequence()
 
         else:
-            print(f"Unknown key type: {key_type}")
+            print(f"\033[31mUnknown key type: {key_type}\033[0m")
             return
 
         data["Modes"][mode_now][str(number)] = {
@@ -221,7 +219,7 @@ def commands(command):
         if mode in data["Modes"]:
             del data["Modes"][mode]
         else:
-            print(f"Mode {mode} doesn't exists")
+            print(f"\033[31mMode {mode} doesn't exists\033[0m")
 
         conf.save(data)
         show()
@@ -243,7 +241,7 @@ def commands(command):
                 "5": {}
             }
         else:
-            print(f"Mode {mode} already exists")
+            print(f"\033[31mMode {mode} already exists\033[0m")
             
         conf.save(data)
         show()
@@ -261,19 +259,21 @@ def commands(command):
             data["Modes"][second] = data["Modes"][first]
             del data["Modes"][first]
         else:
-            print(f"Mode {first} doesn't exists")
+            print(f"\033[31mMode {first} doesn't exists\033[0m")
 
         conf.save(data)
         show()
 
 def main():
     global mode_now
+    if "--dev" in sys.argv:
+        print("\033[35mDev mode activated!\033[0m")
     connect_device()
     mode_now = False
     conf.load_device()
     show()
     while True:
-        thing = input(">> ")
+        thing = input("\033[34m>> \033[0m")
         commands(thing)
 
 
