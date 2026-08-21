@@ -2,6 +2,7 @@ import serial
 import serial.tools.list_ports
 import json
 import sys
+import os
 
 def connect_device():
     global ser
@@ -269,6 +270,62 @@ def commands(command):
 
         conf.save(data)
         show()
+
+    elif command == "mode":
+        print(mode_now)
+
+    elif command == "home":
+        mode_now = False
+        show()
+
+    elif command.startswith("export"):
+        data = conf.load()
+        file = command.split()
+
+
+        if len(file) < 2:
+            if mode_now:
+                file = mode_now + ".json"
+            else:
+                file = "PadeXa.json"
+        else:
+            file = file[1]
+
+        if not file.endswith(".json"):
+            file = file + ".json"
+
+        if mode_now:
+            export = data["Modes"][mode_now]
+        else:
+            export = data["Modes"]
+
+        with open(file, "w") as f:
+            json.dump(export, f, indent=4)
+        print("\033[32mExported!\033[0m")
+        print(f"\033[32mSaved:\033[0m {os.path.abspath(file)}")
+
+    elif command.startswith("import"):
+        data = conf.load()
+        file = command.split()
+        if len(file) < 2:
+            return
+
+        file = file[1]
+
+        try:
+            with open(file, "r") as f:
+                imported = json.load(f)
+
+            if mode_now:
+                data["Modes"][mode_now] = imported
+            else:
+                data["Modes"] = imported
+
+            conf.save(data)
+            show()
+
+        except:
+            print(f"\033[31m File {file} not founded \033[0m")
 
 def main():
     global mode_now
