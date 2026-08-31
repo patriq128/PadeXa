@@ -3,6 +3,7 @@ import serial.tools.list_ports
 import json
 import sys
 import os
+import time
 
 def connect_device():
     global ser
@@ -12,7 +13,23 @@ def connect_device():
         for p in serial.tools.list_ports.comports():
             if p.vid is not None and hex(p.vid).upper().replace("0X", "") == PICO_VID:
                 return p.device
-        return None
+            else:
+                a = 0
+                b = 0
+                while True:
+                    a += 1
+                    b += 1
+                    for p in serial.tools.list_ports.comports():
+                        if p.vid is not None and hex(p.vid).upper().replace("0X", "") == PICO_VID:
+                            return p.device
+                            break
+                        
+                    print(f"\r\033[KConnecting to device " f"\033[3{a}m{a * '.'}\033[0m", end="", flush=True)
+                    time.sleep(0.1)
+                    if a == 4:
+                        a = 0
+                    if b == 6000:
+                        print("\033[31mNothing connected after 10 min.\033[0m")
 
     port = find_pico()
 
@@ -21,7 +38,7 @@ def connect_device():
         exit()
 
     ser = serial.Serial(port, 115200)
-    print("\033[32mConnected:", port, "\033[0m")
+    print("\n\033[32mConnected:", port, "\033[0m")
 
 class Conf:
     def load_device(self):
@@ -328,6 +345,16 @@ def commands(command):
             print(f"\033[31m File {file} not founded \033[0m")
 
 def main():
+    print("\033[2J\033[H", end="")
+    print(""" ███████████                █████          █████ █████          
+▒▒███▒▒▒▒▒███              ▒▒███          ▒▒███ ▒▒███           
+ ▒███    ▒███  ██████    ███████   ██████  ▒▒███ ███    ██████  
+ ▒██████████  ▒▒▒▒▒███  ███▒▒███  ███▒▒███  ▒▒█████    ▒▒▒▒▒███ 
+ ▒███▒▒▒▒▒▒    ███████ ▒███ ▒███ ▒███████    ███▒███    ███████ 
+ ▒███         ███▒▒███ ▒███ ▒███ ▒███▒▒▒    ███ ▒▒███  ███▒▒███ 
+ █████       ▒▒████████▒▒████████▒▒██████  █████ █████▒▒████████
+▒▒▒▒▒         ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒▒ ▒▒▒▒▒  ▒▒▒▒▒▒▒▒                                            
+                                                                """)
     global mode_now
     if "--dev" in sys.argv:
         print("\033[35mDev mode activated!\033[0m")
