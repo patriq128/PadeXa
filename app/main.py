@@ -231,6 +231,20 @@ def commands(command):
 
         conf.save(data)
         show()
+
+    elif command.startswith("r"):
+        data = conf.load()
+        do = command.slip()
+
+        if len(do) < 2:
+            return
+
+        do = do[1]
+
+        if do == "volume":
+            print("volume")
+        elif do == "zoom":
+            print("zoom")
         
     elif command.startswith("remove"):
         data = conf.load()
@@ -355,6 +369,7 @@ def main():
  █████       ▒▒████████▒▒████████▒▒██████  █████ █████▒▒████████
 ▒▒▒▒▒         ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒▒ ▒▒▒▒▒  ▒▒▒▒▒▒▒▒                                            
                                                                 """)
+    print("\033[37m* For now the PadeXa is working only on english keyboard")
     global mode_now
     if "--dev" in sys.argv:
         print("\033[35mDev mode activated!\033[0m")
@@ -365,7 +380,6 @@ def main():
     while True:
         thing = input("\033[34m>> \033[0m")
         commands(thing)
-
 
 if __name__ == "__main__":
     main()
