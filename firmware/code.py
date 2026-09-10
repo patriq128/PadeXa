@@ -1,4 +1,5 @@
 import board #type: ignore
+import rotaryio #type: ignore
 import keypad #type: ignore
 import json #type: ignore
 import digitalio #type: ignore
@@ -33,6 +34,13 @@ matrix = keypad.KeyMatrix(
 mode_button = digitalio.DigitalInOut(board.GP8)
 mode_button.direction = digitalio.Direction.INPUT
 mode_button.pull = digitalio.Pull.UP
+
+# RotaryEncoder
+encoder = rotaryio.IncrementalEncoder(board.GP10, board.GP9)
+
+last_position = encoder.position
+
+last_a = A.value()
 
 def get():
     global data
@@ -176,6 +184,24 @@ def send_key(key):
 
     execute(info)
 
+def rotaryencoder(position, last_position):
+    mode = modes[current_mode]
+    info = data["Modes"][mode]["r"]
+    def do_something():
+        try:
+            do = mode["Modes"][mode]["r"]["do"]
+            clicks = mode["Modes"][mode]["r"]["clicks"]
+        except:
+            do = false
+
+        if do == "zoom":
+            if position > last_position:
+                kbd.press(Keycode.CONTROL, Keycode.EQUALS)
+                kbd.release_all()
+            else:
+                kbd.press(Keycode.CONTROL, Keycode.MINUS)
+                kbd.release_all()
+
 def recive_serial():
     import usb_cdc  # type: ignore
 
@@ -237,3 +263,9 @@ while True:
 
     if event and event.pressed:
         send_key(event.key_number)
+
+    position = encoder.position
+
+    if position != last_position:
+        rotaryencoder(position, last_position)
+        last_position = position
