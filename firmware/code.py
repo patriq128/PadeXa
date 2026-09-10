@@ -7,6 +7,9 @@ import time
 import usb_hid #type: ignore
 from adafruit_hid.keyboard import Keyboard #type: ignore
 from adafruit_hid.keycode import Keycode #type: ignore
+from adafruit_hid.mouse import Mouse #type: ignore
+from adafruit_hid.consumer_control import ConsumerControl #type: ignore
+from adafruit_hid.consumer_control_code import ConsumerControlCode #type: ignore
 
 import busio #type: ignore
 import displayio #type: ignore
@@ -40,7 +43,9 @@ encoder = rotaryio.IncrementalEncoder(board.GP10, board.GP9)
 
 last_position = encoder.position
 
-last_a = A.value()
+mouse = Mouse(usb_hid.devices)
+
+cc = ConsumerControl(usb_hid.devices)
 
 def get():
     global data
@@ -192,15 +197,25 @@ def rotaryencoder(position, last_position):
             do = mode["Modes"][mode]["r"]["do"]
             clicks = mode["Modes"][mode]["r"]["clicks"]
         except:
-            do = false
+            do = False
 
-        if do == "zoom":
+        if do == "volume":
             if position > last_position:
-                kbd.press(Keycode.CONTROL, Keycode.EQUALS)
-                kbd.release_all()
+                cc.send(ConsumerControlCode.VOLUME_INCREMENT)
             else:
-                kbd.press(Keycode.CONTROL, Keycode.MINUS)
-                kbd.release_all()
+                cc.send(ConsumerControlCode.VOLUME_DECREMENT)
+        elif do == "zoom":
+            if position > last_position:
+                keyboard.press(Keycode.CONTROL, Keycode.EQUALS)
+                keyboard.release_all()
+            else:
+                keyboard.press(Keycode.CONTROL, Keycode.MINUS)
+                keyboard.release_all()
+        elif do == "scroll":
+            if position > last_position:
+                mouse.move(wheel=1)
+            else:
+                mouse.move(wheel=-1)
 
 def recive_serial():
     import usb_cdc  # type: ignore
