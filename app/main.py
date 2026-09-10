@@ -239,12 +239,16 @@ def commands(command):
         if len(do) < 2:
             return
 
-        do = do[1]
+        number = do[2]
+        make = do[1]
 
-        if do == "volume":
-            print("volume")
-        elif do == "zoom":
-            print("zoom")
+        data["Modes"][mode_now]["r"] = {
+            "do" : make,
+            "clicks" : number
+        }
+
+        conf.save(data)
+        show()
         
     elif command.startswith("remove"):
         data = conf.load()
@@ -276,7 +280,8 @@ def commands(command):
                 "2": {},
                 "3": {},
                 "4": {},
-                "5": {}
+                "5": {},
+                "r": {}
             }
         else:
             print(f"\033[31mMode {mode} already exists\033[0m")
