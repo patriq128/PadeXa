@@ -71,13 +71,41 @@ def display_mode():
     display.show()
 
 def switch_mode():
+    def show_menu(mode_now):
+        display.fill(0)
+        text = f"< {modes[mode_now]} >"
+        x = (128 - len(text) * 6) // 2
+        y = (32 - 8) // 2
+        display.text(text, x, y, 1)
+        display.show()
+
     global current_mode
+    global last_position
 
-    current_mode += 1
+    modes_now = current_mode
+    last_position_now = position
 
-    if current_mode >= len(modes):
-        current_mode = 0
-    display_mode()
+    show_menu(modes_now)
+
+    while True:
+        if position != last_position_now:
+            if position > last_position_now:
+                modes_now += 1
+            else:
+                modes_now -= 1
+
+            if modes_now >= len(modes):
+                modes_now = 0
+            elif modes_now < 0:
+                modes_now = len(modes) - 1
+
+            last_position_now = position
+            show_menu(modes_now)
+
+        if not button:
+            current_mode = modes_now
+            display_mode()
+            break
 
 
 def send_key(key):
@@ -186,36 +214,73 @@ def send_key(key):
 
     mode = modes[current_mode]
     info = data["Modes"][mode][str(key)]
-
     execute(info)
 
+
+encoder_steps = 0
+encoder_direction = 0
+
+
 def rotaryencoder(position, last_position):
+    global encoder_steps
+    global encoder_direction
+
     mode = modes[current_mode]
     info = data["Modes"][mode]["r"]
-    def do_something():
-        try:
-            do = mode["Modes"][mode]["r"]["do"]
-            clicks = mode["Modes"][mode]["r"]["clicks"]
-        except:
-            do = False
 
-        if do == "volume":
-            if position > last_position:
-                cc.send(ConsumerControlCode.VOLUME_INCREMENT)
-            else:
-                cc.send(ConsumerControlCode.VOLUME_DECREMENT)
-        elif do == "zoom":
-            if position > last_position:
-                keyboard.press(Keycode.CONTROL, Keycode.EQUALS)
-                keyboard.release_all()
-            else:
-                keyboard.press(Keycode.CONTROL, Keycode.MINUS)
-                keyboard.release_all()
-        elif do == "scroll":
-            if position > last_position:
-                mouse.move(wheel=1)
-            else:
-                mouse.move(wheel=-1)
+    do = info.get("do", False)
+    clicks = info.get("clicks", 1)
+
+    if position > last_position:
+        direction = 1
+    elif position < last_position:
+        direction = -1
+    else:
+        return
+
+    if direction != encoder_direction:
+        encoder_steps = 0
+        encoder_direction = direction
+
+    encoder_steps += 1
+
+    if encoder_steps >= clicks:
+        encoder_steps = 0
+
+        do_something(direction, do)
+
+
+def do_something(direction, do):
+
+    if do == "volume":
+
+        if direction == 1:
+            cc.send(ConsumerControlCode.VOLUME_INCREMENT)
+        else:
+            cc.send(ConsumerControlCode.VOLUME_DECREMENT)
+
+    elif do == "zoom":
+
+        if direction == 1:
+            keyboard.press(
+                Keycode.CONTROL,
+                Keycode.EQUALS
+            )
+        else:
+            keyboard.press(
+                Keycode.CONTROL,
+                Keycode.MINUS
+            )
+
+        keyboard.release_all()
+
+    elif do == "scroll":
+
+        if direction == 1:
+            mouse.move(wheel=1)
+        else:
+            mouse.move(wheel=-1)
+
 
 def recive_serial():
     import usb_cdc  # type: ignore
