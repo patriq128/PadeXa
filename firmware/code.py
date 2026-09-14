@@ -79,9 +79,6 @@ def switch_mode():
         display.text(text, x, y, 1)
         display.show()
 
-    global current_mode
-    global last_position
-
     modes_now = current_mode
     last_position_now = position
 
